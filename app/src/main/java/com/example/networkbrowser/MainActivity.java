@@ -229,16 +229,18 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void triggerGlobalBlock() {
             if (System.currentTimeMillis() < globalBlockUntil) return;
-            globalBlockUntil = System.currentTimeMillis() + 65000;
+            globalBlockUntil = System.currentTimeMillis() + 5000; // 5 ثوانٍ فقط
             runOnUiThread(() -> {
-                appendLog("🛑 تم إيقاف جميع الشاشات لمدة 65 ثانية لحماية الشبكة...");
-                statusText.setText("⏳ انتظار 65 ثانية (حظر مؤقت)...");
+                appendLog("🛑 حظر! سيتم تجديد الشاشات بعد 5 ثوانٍ...");
+                statusText.setText("⏳ انتظار قصير (5 ثوانٍ)...");
                 uiHandler.postDelayed(() -> {
-                    appendLog("🔄 انتهت مدة الحظر، جاري تجديد الجلسات وإعادة التحميل...");
                     for (int i = 0; i < 4; i++) {
                         webs[i].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
                         webs[i].loadUrl(targetUrl);
                     }
+                }, 5000);
+            });
+        }
                 }, 65000);
             });
         }
