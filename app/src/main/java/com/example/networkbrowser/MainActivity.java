@@ -31,8 +31,7 @@ public class MainActivity extends Activity {
         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 Chrome/118.0 Mobile",
         "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 Chrome/115.0 Mobile",
         "Mozilla/5.0 (Linux; Android 11; SM-A515F) AppleWebKit/537.36 Chrome/110.0 Mobile",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Version/16.0 Mobile",
-        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0 Mobile"
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Version/16.0 Mobile"
     };
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -53,7 +52,7 @@ public class MainActivity extends Activity {
         statusText = findViewById(R.id.statusText);
         logText = findViewById(R.id.logText);
         voucherResult = findViewById(R.id.voucherResult);
-
+        
         webs[0] = findViewById(R.id.web0);
         webs[1] = findViewById(R.id.web1);
         webs[2] = findViewById(R.id.web2);
@@ -137,7 +136,7 @@ public class MainActivity extends Activity {
         int d = parseInt(etDigits, 7);
         int a = parseInt(etAttempts, 1000);
         int pz = parseInt(etPause, 500);
-
+        
         int threads = parseInt(etThreads, 1);
         if (threads < 1) threads = 1;
         if (threads > 4) threads = 4;
@@ -155,7 +154,7 @@ public class MainActivity extends Activity {
                 webs[index].evaluateJavascript(cfg, null);
                 webs[index].evaluateJavascript(finderJs, null);
                 appendLog("[W" + index + "] ▶ بدأ العامل");
-            }, i * 2000);
+            }, i * 2000); 
         }
     }
 
@@ -188,11 +187,11 @@ public class MainActivity extends Activity {
     public class Bridge {
         private final int id;
         public Bridge(int id) { this.id = id; }
-
+        
         @JavascriptInterface public void log(String m) { runOnUiThread(() -> appendLog("[W" + id + "] " + m)); }
-
-        @JavascriptInterface public void progress(int c, int t, String v) {
-            runOnUiThread(() -> statusText.setText("[W" + id + "] [" + c + "/" + t + "] " + v));
+        
+        @JavascriptInterface public void progress(int c, int t, String v) { 
+            runOnUiThread(() -> statusText.setText("[W" + id + "] [" + c + "/" + t + "] " + v)); 
         }
 
         @JavascriptInterface public synchronized boolean requestTurn(long minGapMs) {
@@ -203,7 +202,7 @@ public class MainActivity extends Activity {
             }
             return false;
         }
-
+        
         @JavascriptInterface public void clearCookies() {
             runOnUiThread(() -> {
                 CookieManager.getInstance().removeAllCookies(null);
@@ -212,7 +211,7 @@ public class MainActivity extends Activity {
                 appendLog("[W" + id + "] 🧹 تم مسح الكوكيز (جلسة جديدة)");
             });
         }
-
+        
         @JavascriptInterface public void found(String v, String st) {
             runOnUiThread(() -> {
                 appendLog("✅✅✅ [W" + id + "] وجد الكرت: " + v);
