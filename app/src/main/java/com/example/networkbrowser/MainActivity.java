@@ -168,6 +168,7 @@ public class MainActivity extends Activity {
             final int index = i;
             uiHandler.postDelayed(() -> {
                 if (stoppedState) return;
+                isRunning[index] = true;
                 webs[index].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
                 String cfg = "window.FINDER_CONFIG={id:" + index + ",prefix:'" + p + "',suffix:'" + s + "',digits:" + d + ",attempts:" + a + ",pause:" + pz + "};";
                 webs[index].evaluateJavascript(cfg, null);
@@ -229,19 +230,12 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void triggerGlobalBlock() {
             if (System.currentTimeMillis() < globalBlockUntil) return;
-            globalBlockUntil = System.currentTimeMillis() + 5000; // 5 ثوانٍ فقط
+            globalBlockUntil = System.currentTimeMillis() + 1500; 
             runOnUiThread(() -> {
-                appendLog("🛑 حظر! سيتم تجديد الشاشات بعد 5 ثوانٍ...");
-                statusText.setText("⏳ انتظار قصير (5 ثوانٍ)...");
-                uiHandler.postDelayed(() -> {
-                    for (int i = 0; i < 4; i++) {
-                        webs[i].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
-                        webs[i].loadUrl(targetUrl);
-                    }
-                }, 5000);
+                appendLog("🛑 حظر! جاري تجديد الجلسة فوراً...");
             });
         }
-
+        
         @JavascriptInterface public void clearCookies() {
             runOnUiThread(() -> {
                 CookieManager.getInstance().removeAllCookies(null);
