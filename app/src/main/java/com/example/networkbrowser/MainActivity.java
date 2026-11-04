@@ -26,6 +26,7 @@ public class MainActivity extends Activity {
     private boolean stoppedState = false;
     private final Random rand = new Random();
     private long lastAttemptTime = 0;
+    private long globalBlockUntil = 0;
 
     private final String[] UAS = {
         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 Chrome/118.0 Mobile",
@@ -203,6 +204,19 @@ public class MainActivity extends Activity {
             return false;
         }
         
+        
+        @JavascriptInterface public boolean isGloballyBlocked() {
+            return System.currentTimeMillis() < globalBlockUntil;
+        }
+
+        @JavascriptInterface public void triggerGlobalBlock() {
+            globalBlockUntil = System.currentTimeMillis() + 60000; // حظر لمدة 60 ثانية
+            runOnUiThread(() -> {
+                appendLog("🛑 تم إيقاف جميع الشاشات لمدة 60 ثانية لحماية الشبكة من التعليق.");
+                statusText.setText("⏳ انتظار 60 ثانية (حظر مؤقت)...");
+            });
+        }
+
         @JavascriptInterface public void clearCookies() {
             runOnUiThread(() -> {
                 CookieManager.getInstance().removeAllCookies(null);
