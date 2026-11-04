@@ -241,9 +241,6 @@ public class MainActivity extends Activity {
                 }, 5000);
             });
         }
-                }, 65000);
-            });
-        }
 
         @JavascriptInterface public void clearCookies() {
             runOnUiThread(() -> {
